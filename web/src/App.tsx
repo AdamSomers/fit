@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { deleteLog, fetchDay, putLog, type LogPatch } from './api';
 import { AddExercise } from './components/AddExercise';
 import { DayNav } from './components/DayNav';
@@ -14,21 +14,47 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'day' | 'settings'>('day');
 
-  // If the app sits open past midnight, pick up the new day on focus.
+  // If the app sits open past midnight, pick up the new day when it regains
+  // focus or becomes visible again (phone browsers resurrect old tabs).
   useEffect(() => {
-    const onFocus = () => setToday(todayStr());
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
+    const refresh = () => setToday(todayStr());
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, []);
+
+  // When the day rolls over and we were viewing the old "today", follow it —
+  // otherwise yesterday's page (and its selections) lingers as if current.
+  const prevTodayRef = useRef(today);
+  useEffect(() => {
+    const prev = prevTodayRef.current;
+    if (prev !== today) {
+      prevTodayRef.current = today;
+      setDate((d) => (d === prev ? today : d));
+    }
+  }, [today]);
+
+  // Guards against out-of-order responses when flipping days quickly.
+  const dateRef = useRef(date);
+  dateRef.current = date;
 
   const load = useCallback(() => {
     setError(null);
     fetchDay(date)
-      .then(setPayload)
+      .then((p) => {
+        if (p.date === dateRef.current) setPayload(p);
+      })
       .catch((e) => setError(String(e)));
   }, [date]);
 
   useEffect(load, [load]);
+
+  // Only render a payload that belongs to the viewed date — never bleed the
+  // previous day's cards (and their selected state) onto a new date.
+  const current = payload && payload.date === date ? payload : null;
 
   // Patch one exercise in place. Section/exercise order is frozen from the
   // initial fetch — mutations never re-sort (LRU order freeze).
@@ -98,7 +124,7 @@ export default function App() {
           Couldn’t reach the server. <button onClick={load}>Retry</button>
         </div>
       )}
-      {payload?.sections.map((section) => (
+      {current?.sections.map((section) => (
         <Section
           key={section.id}
           section={section}
@@ -106,10 +132,10 @@ export default function App() {
           onUpdateLog={updateLog}
         />
       ))}
-      {payload && (
+      {current && (
         <>
           <AddExercise
-            categories={payload.sections.map((s) => s.name)}
+            categories={current.sections.map((s) => s.name)}
             onAdded={load}
           />
           <footer className="page-footer">
