@@ -1,0 +1,388 @@
+/* Fit — industrial logbook. Near-black, safety orange, plate-stamp headers. */
+
+:root {
+  --bg: #101012;
+  --surface: #1a1a1e;
+  --surface-raised: #202025;
+  --line: #2c2c33;
+  --text: #e8e6e1;
+  --text-dim: #8a8894;
+  --accent: #ff6b1a;
+  --accent-dim: rgba(255, 107, 26, 0.14);
+  --done: #4ade80;
+  --display: 'Barlow Condensed', sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(ellipse 120% 60% at 50% -10%, rgba(255, 107, 26, 0.05), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.4;
+  min-height: 100dvh;
+}
+
+.app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 12px calc(32px + env(safe-area-inset-bottom));
+}
+
+/* ---- day nav ---- */
+
+.daynav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 10px 0;
+  background: linear-gradient(var(--bg) 80%, transparent);
+}
+
+.daynav-arrow {
+  font-family: var(--display);
+  font-size: 32px;
+  line-height: 1;
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.daynav-arrow:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.daynav-label {
+  text-align: center;
+}
+
+.daynav-label h1 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 30px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.daynav-today {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---- sections ---- */
+
+.section h2 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+  margin: 26px 0 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+/* ---- cards ---- */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 116px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.12s, background 0.12s, opacity 0.12s;
+}
+
+.card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  background: linear-gradient(var(--accent-dim), transparent 55%), var(--surface-raised);
+}
+
+.card.completed {
+  opacity: 0.62;
+}
+
+.card.completed .card-name {
+  text-decoration: line-through;
+  text-decoration-color: var(--done);
+  text-decoration-thickness: 2px;
+}
+
+.card-name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 19px;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  padding-right: 28px; /* room for the checkbox */
+}
+
+.card-last {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.card-weight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.card-weight-value {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--accent);
+}
+
+.card-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.card-btn:active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.card-footer {
+  display: flex;
+}
+
+.card-weight + .card-footer {
+  margin-top: 0;
+}
+
+.card-footer:last-child {
+  margin-top: auto;
+}
+
+.card-note {
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.card-note.has-note {
+  color: var(--text);
+  border-left: 2px solid var(--accent);
+  padding-left: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.card-note-add {
+  opacity: 0.7;
+}
+
+/* ---- checkbox ---- */
+
+.card-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  cursor: pointer;
+}
+
+.card-check input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.card-check-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--accent);
+  border-radius: 7px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--bg);
+  background: transparent;
+  transition: background 0.12s;
+}
+
+.card.completed .card-check-box {
+  background: var(--done);
+  border-color: var(--done);
+}
+
+/* ---- dialogs ---- */
+
+.dialog {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-raised);
+  color: var(--text);
+  font-family: var(--mono);
+  padding: 18px;
+  width: min(92vw, 340px);
+}
+
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.dialog h3 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 14px;
+}
+
+.dialog-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialog input[type='number'] {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 24px;
+  padding: 10px 12px;
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+}
+
+.dialog-unit {
+  color: var(--text-dim);
+}
+
+.dialog textarea {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 14px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  resize: vertical;
+}
+
+.dialog input:focus,
+.dialog textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.btn-ghost,
+.btn-accent {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-ghost {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+}
+
+.btn-accent {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #1a0d00;
+}
+
+/* ---- error ---- */
+
+.error {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid #7f1d1d;
+  border-radius: 10px;
+  background: rgba(127, 29, 29, 0.15);
+  color: #fca5a5;
+}
+
+.error button {
+  margin-left: 8px;
+  font-family: var(--mono);
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  color: inherit;
+  padding: 3px 10px;
+  cursor: pointer;
+}
