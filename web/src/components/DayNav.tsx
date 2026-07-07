@@ -1,4 +1,4 @@
-import { addDays, dayLabel } from '../dates';
+import { addDays, dayLabel, formatMDY } from '../dates';
 
 interface Props {
   date: string;
@@ -19,6 +19,7 @@ export function DayNav({ date, today, onNavigate }: Props) {
       </button>
       <div className="daynav-label">
         <h1>{dayLabel(date, today)}</h1>
+        <div className="daynav-date">{formatMDY(date)}</div>
         {date !== today && (
           <button className="daynav-today" onClick={() => onNavigate(today)}>
             jump to today

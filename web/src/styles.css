@@ -86,6 +86,13 @@ body {
   margin: 0;
 }
 
+.daynav-date {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  margin-top: 1px;
+}
+
 .daynav-today {
   background: none;
   border: none;

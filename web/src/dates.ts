@@ -27,5 +27,5 @@ export function dayLabel(date: string, today: string): string {
   if (date === today) return 'Today';
   if (date === addDays(today, -1)) return 'Yesterday';
   const [y, m, d] = date.split('-').map(Number);
-  return `${WEEKDAYS[new Date(y, m - 1, d).getDay()]} ${m}/${d}/${y}`;
+  return WEEKDAYS[new Date(y, m - 1, d).getDay()];
 }
