@@ -28,6 +28,8 @@ export function ExerciseCard({ exercise, onToggleSelect, onUpdateLog }: Props) {
       tabIndex={0}
       onClick={onToggleSelect}
       onKeyDown={(e) => {
+        // Only keys on the card itself — dialogs and buttons inside bubble up.
+        if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onToggleSelect();
