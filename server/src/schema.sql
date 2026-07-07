@@ -9,8 +9,12 @@ CREATE TABLE IF NOT EXISTS exercises (
   category_id INT NOT NULL REFERENCES categories(id),
   name TEXT NOT NULL UNIQUE,
   is_weighted BOOLEAN NOT NULL DEFAULT false,
-  position INT NOT NULL DEFAULT 0
+  position INT NOT NULL DEFAULT 0,
+  active BOOLEAN NOT NULL DEFAULT true
 );
+
+-- Idempotent upgrade for databases created before the column existed.
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true;
 
 CREATE TABLE IF NOT EXISTS logs (
   id SERIAL PRIMARY KEY,

@@ -32,4 +32,5 @@ First-time test setup: `createdb fit_test && DATABASE_URL=postgres://adam@localh
 
 - All dates are plain `YYYY-MM-DD` strings end to end. The client sends its local date; the server never touches timezones (`db.ts` parses Postgres DATE as string).
 - Card order is computed by the server per requested date and frozen client-side until the next fetch — completing an exercise must not re-sort the grid.
-- Adding an exercise with a new category automatically creates a new UI section (`POST /api/exercises`). No UI for this yet; use curl or ask Claude.
+- Adding an exercise with a new category automatically creates a new UI section (form at the bottom of the day page).
+- Hiding an exercise (settings page, day-page footer) sets `exercises.active = false`. Day queries include inactive exercises only on dates where a log row exists, so history survives.

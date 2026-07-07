@@ -42,12 +42,18 @@ Main Lifts (weighted): Barbell Deadlift, Barbell Squat, Barbell Shoulder Press, 
 Accessory Lifts (weighted): Bulgarian Split Squat, Rotational Step Up, Jefferson Curl.
 Core (bodyweight): Clamshell with Hip Internal Rotation, Plank, Little Bear Shoulder Taps, Upper Trunk Rotation, Side Plank Thread the Needle, Superman, Fire Hydrants, Banded Row w/ Thoracic Rotation, Rotator Cuff Isometric Walkout.
 
+**Adding exercises.** A form at the bottom of the day page adds an exercise with a name, category (existing or new; a new category becomes a new section), and a weighted flag.
+
+**Hiding exercises.** A settings page (linked from the day page footer) lists the whole library with show/hide toggles. Hidden exercises (`exercises.active = false`) disappear from day pages going forward, but still appear on any day where they have a log entry, so history is preserved.
+
 ## API
 
 - `GET /api/day/:date` — the whole page payload: sections → exercises with `lastPerformed`, `lastWeight`, and that day's `log` (or null). Exercises pre-sorted LRU by the server.
 - `PUT /api/logs` — upsert `{exerciseId, date, completed?, weight?, note?}`; only provided fields change. Creates the row if missing.
 - `DELETE /api/logs/:exerciseId/:date` — deselect.
 - `POST /api/exercises` — add `{name, category, isWeighted}`; creates the category if new.
+- `GET /api/exercises` — full library with `active` flags (settings page).
+- `PATCH /api/exercises/:id` — `{active}` to show/hide.
 
 ## Stack & Environment
 

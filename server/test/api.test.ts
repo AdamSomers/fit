@@ -180,6 +180,60 @@ describe('DELETE /api/logs/:exerciseId/:date', () => {
   });
 });
 
+describe('GET /api/exercises', () => {
+  it('lists all exercises with category and active flag, in section order', async () => {
+    await pool.query('UPDATE exercises SET active = false WHERE id = $1', [plankId]);
+    const res = await request(app).get('/api/exercises');
+    expect(res.status).toBe(200);
+    expect(res.body.exercises.map((e: any) => e.name)).toEqual([
+      'Barbell Squat',
+      'Barbell Deadlift',
+      'Plank',
+    ]);
+    const plank = res.body.exercises.find((e: any) => e.name === 'Plank');
+    expect(plank).toMatchObject({ category: 'Core', active: false, isWeighted: false });
+  });
+});
+
+describe('PATCH /api/exercises/:id', () => {
+  it('deactivates and reactivates an exercise', async () => {
+    let res = await request(app).patch(`/api/exercises/${plankId}`).send({ active: false });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ id: plankId, active: false });
+    res = await request(app).patch(`/api/exercises/${plankId}`).send({ active: true });
+    expect(res.body.active).toBe(true);
+  });
+
+  it('404s on unknown exercise', async () => {
+    const res = await request(app).patch('/api/exercises/9999').send({ active: false });
+    expect(res.status).toBe(404);
+  });
+
+  it('400s on missing active field', async () => {
+    const res = await request(app).patch(`/api/exercises/${plankId}`).send({});
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('day page visibility of inactive exercises', () => {
+  it('hides inactive exercises with no log that day', async () => {
+    await pool.query('UPDATE exercises SET active = false WHERE id = $1', [plankId]);
+    const res = await request(app).get('/api/day/2026-07-06');
+    const core = res.body.sections.find((s: any) => s.name === 'Core');
+    expect(core).toBeUndefined(); // Plank was Core's only exercise
+  });
+
+  it('still shows an inactive exercise on a day where it has a log', async () => {
+    await insertLog(plankId, '2026-07-05', { completed: true });
+    await pool.query('UPDATE exercises SET active = false WHERE id = $1', [plankId]);
+    const day5 = await request(app).get('/api/day/2026-07-05');
+    const core5 = day5.body.sections.find((s: any) => s.name === 'Core');
+    expect(core5.exercises.map((e: any) => e.name)).toEqual(['Plank']);
+    const day6 = await request(app).get('/api/day/2026-07-06');
+    expect(day6.body.sections.find((s: any) => s.name === 'Core')).toBeUndefined();
+  });
+});
+
 describe('POST /api/exercises', () => {
   it('adds to an existing category', async () => {
     const res = await request(app)

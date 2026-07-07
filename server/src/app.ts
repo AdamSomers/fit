@@ -1,5 +1,12 @@
 import express from 'express';
-import { createExercise, deleteLog, getDay, upsertLog } from './queries.js';
+import {
+  createExercise,
+  deleteLog,
+  getDay,
+  listExercises,
+  setExerciseActive,
+  upsertLog,
+} from './queries.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -33,6 +40,20 @@ app.delete('/api/logs/:exerciseId/:date', async (req, res) => {
     return res.status(400).json({ error: 'bad params' });
   await deleteLog(exerciseId, date);
   res.status(204).end();
+});
+
+app.get('/api/exercises', async (_req, res) => {
+  res.json({ exercises: await listExercises() });
+});
+
+app.patch('/api/exercises/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const { active } = req.body ?? {};
+  if (!Number.isInteger(id) || typeof active !== 'boolean')
+    return res.status(400).json({ error: 'id and boolean active required' });
+  const found = await setExerciseActive(id, active);
+  if (!found) return res.status(404).json({ error: 'unknown exercise' });
+  res.json({ id, active });
 });
 
 app.post('/api/exercises', async (req, res) => {

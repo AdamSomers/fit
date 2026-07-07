@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { deleteLog, fetchDay, putLog, type LogPatch } from './api';
+import { AddExercise } from './components/AddExercise';
 import { DayNav } from './components/DayNav';
 import { Section } from './components/Section';
+import { SettingsPage } from './components/SettingsPage';
 import { todayStr } from './dates';
 import type { DayExercise, DayPayload } from './types';
 
@@ -10,6 +12,7 @@ export default function App() {
   const [date, setDate] = useState(today);
   const [payload, setPayload] = useState<DayPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<'day' | 'settings'>('day');
 
   // If the app sits open past midnight, pick up the new day on focus.
   useEffect(() => {
@@ -76,6 +79,17 @@ export default function App() {
     putLog(exerciseId, date, fields).catch(load);
   };
 
+  if (view === 'settings') {
+    return (
+      <SettingsPage
+        onBack={() => {
+          setView('day');
+          load(); // hidden/shown exercises change the day page
+        }}
+      />
+    );
+  }
+
   return (
     <div className="app">
       <DayNav date={date} today={today} onNavigate={setDate} />
@@ -92,6 +106,19 @@ export default function App() {
           onUpdateLog={updateLog}
         />
       ))}
+      {payload && (
+        <>
+          <AddExercise
+            categories={payload.sections.map((s) => s.name)}
+            onAdded={load}
+          />
+          <footer className="page-footer">
+            <button className="footer-link" onClick={() => setView('settings')}>
+              ⚙ settings
+            </button>
+          </footer>
+        </>
+      )}
     </div>
   );
 }

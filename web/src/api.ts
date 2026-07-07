@@ -1,4 +1,4 @@
-import type { DayLog, DayPayload } from './types';
+import type { DayLog, DayPayload, LibraryExercise } from './types';
 
 async function check<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
@@ -30,4 +30,28 @@ export function putLog(
 export async function deleteLog(exerciseId: number, date: string): Promise<void> {
   const res = await fetch(`/api/logs/${exerciseId}/${date}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`${res.status}`);
+}
+
+export function fetchExercises(): Promise<{ exercises: LibraryExercise[] }> {
+  return fetch('/api/exercises').then((r) => check<{ exercises: LibraryExercise[] }>(r));
+}
+
+export function setExerciseActive(id: number, active: boolean): Promise<unknown> {
+  return fetch(`/api/exercises/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ active }),
+  }).then((r) => check(r));
+}
+
+export function createExercise(
+  name: string,
+  category: string,
+  isWeighted: boolean
+): Promise<{ id: number }> {
+  return fetch('/api/exercises', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, category, isWeighted }),
+  }).then((r) => check<{ id: number }>(r));
 }

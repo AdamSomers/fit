@@ -23,3 +23,11 @@ export interface DayPayload {
   date: string;
   sections: DaySection[];
 }
+
+export interface LibraryExercise {
+  id: number;
+  name: string;
+  category: string;
+  isWeighted: boolean;
+  active: boolean;
+}

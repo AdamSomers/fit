@@ -45,6 +45,7 @@ export async function getDay(date: string): Promise<DayPayload> {
        WHERE exercise_id = e.id AND weight IS NOT NULL AND performed_on <= $1
        ORDER BY performed_on DESC LIMIT 1
      ) lw ON true
+     WHERE e.active OR l.id IS NOT NULL
      ORDER BY c.position, lp.last_performed ASC NULLS FIRST, e.position, e.name`,
     [date]
   );
@@ -98,6 +99,38 @@ export async function upsertLog(
     [exerciseId, date, fields.completed ?? false, fields.weight ?? null, fields.note ?? null]
   );
   return rows[0];
+}
+
+export interface LibraryExercise {
+  id: number;
+  name: string;
+  category: string;
+  isWeighted: boolean;
+  active: boolean;
+}
+
+export async function listExercises(): Promise<LibraryExercise[]> {
+  const { rows } = await pool.query(
+    `SELECT e.id, e.name, c.name AS category, e.is_weighted, e.active
+     FROM exercises e
+     JOIN categories c ON c.id = e.category_id
+     ORDER BY c.position, e.position, e.name`
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    category: r.category,
+    isWeighted: r.is_weighted,
+    active: r.active,
+  }));
+}
+
+export async function setExerciseActive(id: number, active: boolean): Promise<boolean> {
+  const { rowCount } = await pool.query('UPDATE exercises SET active = $2 WHERE id = $1', [
+    id,
+    active,
+  ]);
+  return (rowCount ?? 0) > 0;
 }
 
 export async function deleteLog(exerciseId: number, date: string): Promise<void> {
