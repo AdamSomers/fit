@@ -9,7 +9,7 @@ interface Props {
 export function AddExercise({ categories, onAdded }: Props) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
-  const [weighted, setWeighted] = useState(false);
+  const [kind, setKind] = useState<'bodyweight' | 'weighted' | 'run'>('bodyweight');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -19,9 +19,9 @@ export function AddExercise({ categories, onAdded }: Props) {
     setBusy(true);
     setError(null);
     try {
-      await createExercise(name.trim(), category.trim(), weighted);
+      await createExercise(name.trim(), category.trim(), kind === 'weighted', kind === 'run');
       setName('');
-      setWeighted(false);
+      setKind('bodyweight');
       onAdded();
     } catch (err) {
       setError(String(err).includes('409') ? 'That exercise already exists.' : 'Couldn’t add it.');
@@ -52,14 +52,15 @@ export function AddExercise({ categories, onAdded }: Props) {
             <option key={c} value={c} />
           ))}
         </datalist>
-        <label className="add-weighted">
-          <input
-            type="checkbox"
-            checked={weighted}
-            onChange={(e) => setWeighted(e.target.checked)}
-          />
-          weighted
-        </label>
+        <select
+          className="add-kind"
+          value={kind}
+          onChange={(e) => setKind(e.target.value as 'bodyweight' | 'weighted' | 'run')}
+        >
+          <option value="bodyweight">bodyweight</option>
+          <option value="weighted">weighted</option>
+          <option value="run">run</option>
+        </select>
         <button type="submit" className="btn-accent" disabled={!name.trim() || !category.trim() || busy}>
           add
         </button>

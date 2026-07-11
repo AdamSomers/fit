@@ -12,6 +12,8 @@ A local web app for tracking a personal exercise library, organized by day. Not 
 
 **Weight.** Weighted exercises display the last entered weight on their card, with a button to update it. Updating the weight writes it to that day's log entry (creating one if needed). "Last weight" = most recent non-null weight on any log dated on or before the viewed day.
 
+**Runs.** Run-type exercises (Running category: Trail Run, Road Run, Workout Run) take optional per-day details: distance (mi), time (h:mm:ss), elevation gain (ft). All optional, stored on the log entry. The card shows a one-line summary of whatever was entered (e.g. "5.2 mi · 44:30 · 820 ft") with an edit button.
+
 **Last performed.** Each card shows "Last performed on MM/DD/YYYY" — the most recent day *before* the viewed day with a completed log. Never performed shows "Never".
 
 ## Ordering
@@ -28,10 +30,13 @@ Within each section, cards are ordered LRU: least-recently-performed first (neve
 
 ```
 categories: id, name (unique), position
-exercises:  id, category_id → categories, name (unique), is_weighted, position
+exercises:  id, category_id → categories, name (unique), is_weighted, is_run,
+            position, active
 logs:       id, exercise_id → exercises, performed_on (date),
             completed (bool, default false), weight numeric nullable,
-            note text nullable, UNIQUE(exercise_id, performed_on)
+            note text nullable, distance numeric nullable,
+            time_seconds int nullable, elevation_ft int nullable,
+            UNIQUE(exercise_id, performed_on)
 ```
 
 Dates are plain calendar dates (no timezones). The client sends its local date; the server never converts.
@@ -41,6 +46,7 @@ Dates are plain calendar dates (no timezones). The client sends its local date; 
 Main Lifts (weighted): Barbell Deadlift, Barbell Squat, Barbell Shoulder Press, Dynamic Landmine Lunge Press.
 Accessory Lifts (weighted): Bulgarian Split Squat, Rotational Step Up, Jefferson Curl.
 Core (bodyweight): Clamshell with Hip Internal Rotation, Plank, Little Bear Shoulder Taps, Upper Trunk Rotation, Side Plank Thread the Needle, Superman, Fire Hydrants, Banded Row w/ Thoracic Rotation, Rotator Cuff Isometric Walkout.
+Running (run): Trail Run, Road Run, Workout Run.
 
 **Adding exercises.** A form at the bottom of the day page adds an exercise with a name, category (existing or new; a new category becomes a new section), and a weighted flag.
 

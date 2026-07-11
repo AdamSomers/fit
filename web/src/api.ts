@@ -13,6 +13,9 @@ export interface LogPatch {
   completed?: boolean;
   weight?: number | null;
   note?: string | null;
+  distance?: number | null;
+  timeSeconds?: number | null;
+  elevationFt?: number | null;
 }
 
 export function putLog(
@@ -47,11 +50,12 @@ export function setExerciseActive(id: number, active: boolean): Promise<unknown>
 export function createExercise(
   name: string,
   category: string,
-  isWeighted: boolean
+  isWeighted: boolean,
+  isRun: boolean
 ): Promise<{ id: number }> {
   return fetch('/api/exercises', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, category, isWeighted }),
+    body: JSON.stringify({ name, category, isWeighted, isRun }),
   }).then((r) => check<{ id: number }>(r));
 }

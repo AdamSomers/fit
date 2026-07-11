@@ -22,3 +22,13 @@ INSERT INTO exercises (category_id, name, is_weighted, position) VALUES
   ((SELECT id FROM categories WHERE name = 'Core'), 'Banded Row w/ Thoracic Rotation', false, 8),
   ((SELECT id FROM categories WHERE name = 'Core'), 'Rotator Cuff Isometric Walkout', false, 9)
 ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO categories (name, position)
+SELECT 'Running', COALESCE(max(position), 0) + 1 FROM categories
+ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO exercises (category_id, name, is_run, position) VALUES
+  ((SELECT id FROM categories WHERE name = 'Running'), 'Trail Run', true, 1),
+  ((SELECT id FROM categories WHERE name = 'Running'), 'Road Run', true, 2),
+  ((SELECT id FROM categories WHERE name = 'Running'), 'Workout Run', true, 3)
+ON CONFLICT (name) DO NOTHING;

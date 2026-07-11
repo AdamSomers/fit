@@ -4,12 +4,16 @@ export interface DayLog {
   completed: boolean;
   weight: number | null;
   note: string | null;
+  distance: number | null;
+  timeSeconds: number | null;
+  elevationFt: number | null;
 }
 
 export interface DayExercise {
   id: number;
   name: string;
   isWeighted: boolean;
+  isRun: boolean;
   lastPerformed: string | null;
   lastWeight: number | null;
   log: DayLog | null;
@@ -29,10 +33,12 @@ export interface DayPayload {
 export async function getDay(date: string): Promise<DayPayload> {
   const { rows } = await pool.query(
     `SELECT c.id AS cat_id, c.name AS cat_name,
-            e.id, e.name, e.is_weighted,
+            e.id, e.name, e.is_weighted, e.is_run,
             lp.last_performed,
             lw.last_weight,
-            l.completed, l.weight, l.note, (l.id IS NOT NULL) AS has_log
+            l.completed, l.weight, l.note,
+            l.distance, l.time_seconds, l.elevation_ft,
+            (l.id IS NOT NULL) AS has_log
      FROM exercises e
      JOIN categories c ON c.id = e.category_id
      LEFT JOIN logs l ON l.exercise_id = e.id AND l.performed_on = $1
@@ -61,10 +67,18 @@ export async function getDay(date: string): Promise<DayPayload> {
       id: row.id,
       name: row.name,
       isWeighted: row.is_weighted,
+      isRun: row.is_run,
       lastPerformed: row.last_performed,
       lastWeight: row.last_weight,
       log: row.has_log
-        ? { completed: row.completed, weight: row.weight, note: row.note }
+        ? {
+            completed: row.completed,
+            weight: row.weight,
+            note: row.note,
+            distance: row.distance,
+            timeSeconds: row.time_seconds,
+            elevationFt: row.elevation_ft,
+          }
         : null,
     });
   }
@@ -75,7 +89,20 @@ export interface LogFields {
   completed?: boolean;
   weight?: number | null;
   note?: string | null;
+  distance?: number | null;
+  timeSeconds?: number | null;
+  elevationFt?: number | null;
 }
+
+// request field -> column name
+const LOG_COLUMNS: Record<keyof LogFields, string> = {
+  completed: 'completed',
+  weight: 'weight',
+  note: 'note',
+  distance: 'distance',
+  timeSeconds: 'time_seconds',
+  elevationFt: 'elevation_ft',
+};
 
 export async function upsertLog(
   exerciseId: number,
@@ -83,22 +110,39 @@ export async function upsertLog(
   fields: LogFields
 ): Promise<DayLog> {
   // Only fields present in the request overwrite existing values.
-  const sets: string[] = [];
-  if ('completed' in fields) sets.push('completed = EXCLUDED.completed');
-  if ('weight' in fields) sets.push('weight = EXCLUDED.weight');
-  if ('note' in fields) sets.push('note = EXCLUDED.note');
+  const sets = (Object.keys(LOG_COLUMNS) as (keyof LogFields)[])
+    .filter((k) => k in fields)
+    .map((k) => `${LOG_COLUMNS[k]} = EXCLUDED.${LOG_COLUMNS[k]}`);
   const conflictAction = sets.length
     ? `DO UPDATE SET ${sets.join(', ')}`
     : 'DO UPDATE SET completed = logs.completed'; // no-op so RETURNING still fires
 
   const { rows } = await pool.query(
-    `INSERT INTO logs (exercise_id, performed_on, completed, weight, note)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO logs (exercise_id, performed_on, completed, weight, note,
+                       distance, time_seconds, elevation_ft)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      ON CONFLICT (exercise_id, performed_on) ${conflictAction}
-     RETURNING completed, weight, note`,
-    [exerciseId, date, fields.completed ?? false, fields.weight ?? null, fields.note ?? null]
+     RETURNING completed, weight, note, distance, time_seconds, elevation_ft`,
+    [
+      exerciseId,
+      date,
+      fields.completed ?? false,
+      fields.weight ?? null,
+      fields.note ?? null,
+      fields.distance ?? null,
+      fields.timeSeconds ?? null,
+      fields.elevationFt ?? null,
+    ]
   );
-  return rows[0];
+  const r = rows[0];
+  return {
+    completed: r.completed,
+    weight: r.weight,
+    note: r.note,
+    distance: r.distance,
+    timeSeconds: r.time_seconds,
+    elevationFt: r.elevation_ft,
+  };
 }
 
 export interface LibraryExercise {
@@ -143,7 +187,8 @@ export async function deleteLog(exerciseId: number, date: string): Promise<void>
 export async function createExercise(
   name: string,
   category: string,
-  isWeighted: boolean
+  isWeighted: boolean,
+  isRun: boolean
 ): Promise<number> {
   const client = await pool.connect();
   try {
@@ -156,11 +201,11 @@ export async function createExercise(
       [category]
     );
     const ex = await client.query(
-      `INSERT INTO exercises (category_id, name, is_weighted, position)
-       VALUES ($1, $2, $3,
+      `INSERT INTO exercises (category_id, name, is_weighted, is_run, position)
+       VALUES ($1, $2, $3, $4,
                (SELECT COALESCE(max(position), 0) + 1 FROM exercises WHERE category_id = $1))
        RETURNING id`,
-      [cat.rows[0].id, name, isWeighted]
+      [cat.rows[0].id, name, isWeighted, isRun]
     );
     await client.query('COMMIT');
     return ex.rows[0].id;

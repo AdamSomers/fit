@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import type { LogPatch } from '../api';
 import { formatMDY } from '../dates';
+import { runSummary } from '../run';
 import type { DayExercise } from '../types';
-import { NoteDialog, WeightDialog } from './Dialogs';
+import { NoteDialog, RunDialog, WeightDialog } from './Dialogs';
 
 interface Props {
   exercise: DayExercise;
@@ -11,8 +12,9 @@ interface Props {
 }
 
 export function ExerciseCard({ exercise, onToggleSelect, onUpdateLog }: Props) {
-  const { name, isWeighted, lastPerformed, lastWeight, log } = exercise;
-  const [dialog, setDialog] = useState<'weight' | 'note' | null>(null);
+  const { name, isWeighted, isRun, lastPerformed, lastWeight, log } = exercise;
+  const [dialog, setDialog] = useState<'weight' | 'note' | 'run' | null>(null);
+  const runDetails = log ? runSummary(log) : '';
 
   const selected = log !== null;
   const completed = log?.completed ?? false;
@@ -68,6 +70,15 @@ export function ExerciseCard({ exercise, onToggleSelect, onUpdateLog }: Props) {
         </div>
       )}
 
+      {isRun && (
+        <div className="card-weight" onClick={(e) => e.stopPropagation()}>
+          {runDetails && <span className="card-run-summary">{runDetails}</span>}
+          <button className="card-btn" onClick={() => setDialog('run')}>
+            {runDetails ? 'edit' : 'details'}
+          </button>
+        </div>
+      )}
+
       <div className="card-footer" onClick={(e) => e.stopPropagation()}>
         {log?.note ? (
           <button className="card-note has-note" onClick={() => setDialog('note')}>
@@ -86,6 +97,17 @@ export function ExerciseCard({ exercise, onToggleSelect, onUpdateLog }: Props) {
           initial={log?.weight ?? lastWeight}
           onSave={(weight) => {
             onUpdateLog({ weight });
+            setDialog(null);
+          }}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'run' && (
+        <RunDialog
+          name={name}
+          initial={log}
+          onSave={(details) => {
+            onUpdateLog(details);
             setDialog(null);
           }}
           onClose={() => setDialog(null)}

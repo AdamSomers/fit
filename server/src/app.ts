@@ -57,11 +57,11 @@ app.patch('/api/exercises/:id', async (req, res) => {
 });
 
 app.post('/api/exercises', async (req, res) => {
-  const { name, category, isWeighted } = req.body ?? {};
+  const { name, category, isWeighted, isRun } = req.body ?? {};
   if (typeof name !== 'string' || !name.trim() || typeof category !== 'string' || !category.trim())
     return res.status(400).json({ error: 'name and category required' });
   try {
-    const id = await createExercise(name.trim(), category.trim(), Boolean(isWeighted));
+    const id = await createExercise(name.trim(), category.trim(), Boolean(isWeighted), Boolean(isRun));
     res.status(201).json({ id });
   } catch (err: any) {
     if (err.code === '23505') return res.status(409).json({ error: 'exercise already exists' });

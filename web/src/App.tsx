@@ -85,7 +85,16 @@ export default function App() {
       patchExercise(exerciseId, { log: null });
       deleteLog(exerciseId, date).catch(load);
     } else {
-      patchExercise(exerciseId, { log: { completed: false, weight: null, note: null } });
+      patchExercise(exerciseId, {
+        log: {
+          completed: false,
+          weight: null,
+          note: null,
+          distance: null,
+          timeSeconds: null,
+          elevationFt: null,
+        },
+      });
       putLog(exerciseId, date).catch(load);
     }
   };
@@ -98,6 +107,11 @@ export default function App() {
       completed: fields.completed ?? ex.log?.completed ?? false,
       weight: 'weight' in fields ? (fields.weight ?? null) : (ex.log?.weight ?? null),
       note: 'note' in fields ? (fields.note ?? null) : (ex.log?.note ?? null),
+      distance: 'distance' in fields ? (fields.distance ?? null) : (ex.log?.distance ?? null),
+      timeSeconds:
+        'timeSeconds' in fields ? (fields.timeSeconds ?? null) : (ex.log?.timeSeconds ?? null),
+      elevationFt:
+        'elevationFt' in fields ? (fields.elevationFt ?? null) : (ex.log?.elevationFt ?? null),
     };
     const patch: Partial<DayExercise> = { log: optimistic };
     if (optimistic.weight != null) patch.lastWeight = optimistic.weight;

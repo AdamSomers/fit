@@ -41,6 +41,18 @@ async function insertLog(
   );
 }
 
+async function insertRunExercise(name = 'Trail Run'): Promise<number> {
+  await pool.query(`INSERT INTO categories (name, position) VALUES ('Running', 3)
+                    ON CONFLICT (name) DO NOTHING`);
+  const res = await pool.query(
+    `INSERT INTO exercises (category_id, name, is_run, position)
+     VALUES ((SELECT id FROM categories WHERE name = 'Running'), $1, true, 1)
+     RETURNING id`,
+    [name]
+  );
+  return res.rows[0].id;
+}
+
 describe('GET /api/day/:date', () => {
   it('returns sections in category-position order with exercise shape', async () => {
     const res = await request(app).get('/api/day/2026-07-06');
@@ -52,9 +64,26 @@ describe('GET /api/day/:date', () => {
       id: squatId,
       name: 'Barbell Squat',
       isWeighted: true,
+      isRun: false,
       lastPerformed: null,
       lastWeight: null,
       log: null,
+    });
+  });
+
+  it('marks run exercises and includes run metrics in the day log', async () => {
+    const runId = await insertRunExercise();
+    await pool.query(
+      `INSERT INTO logs (exercise_id, performed_on, completed, distance, time_seconds, elevation_ft)
+       VALUES ($1, '2026-07-10', true, 5.2, 2670, 820)`,
+      [runId]
+    );
+    const res = await request(app).get('/api/day/2026-07-10');
+    const running = res.body.sections.find((s: any) => s.name === 'Running');
+    expect(running.exercises[0]).toMatchObject({
+      name: 'Trail Run',
+      isRun: true,
+      log: { completed: true, distance: 5.2, timeSeconds: 2670, elevationFt: 820 },
     });
   });
 
@@ -114,7 +143,7 @@ describe('GET /api/day/:date', () => {
     await insertLog(squatId, '2026-07-06', { completed: true, weight: 185, note: 'felt strong' });
     const res = await request(app).get('/api/day/2026-07-06');
     const squat = res.body.sections[0].exercises.find((e: any) => e.name === 'Barbell Squat');
-    expect(squat.log).toEqual({ completed: true, weight: 185, note: 'felt strong' });
+    expect(squat.log).toMatchObject({ completed: true, weight: 185, note: 'felt strong' });
   });
 
   it('rejects a malformed date', async () => {
@@ -129,7 +158,7 @@ describe('PUT /api/logs', () => {
       .put('/api/logs')
       .send({ exerciseId: squatId, date: '2026-07-06' });
     expect(res.status).toBe(200);
-    expect(res.body.log).toEqual({ completed: false, weight: null, note: null });
+    expect(res.body.log).toMatchObject({ completed: false, weight: null, note: null });
   });
 
   it('partial updates touch only provided fields', async () => {
@@ -140,7 +169,7 @@ describe('PUT /api/logs', () => {
     const res = await request(app)
       .put('/api/logs')
       .send({ exerciseId: squatId, date: '2026-07-06', completed: true });
-    expect(res.body.log).toEqual({ completed: true, weight: 185, note: null });
+    expect(res.body.log).toMatchObject({ completed: true, weight: 185, note: null });
   });
 
   it('can clear weight and note with explicit nulls', async () => {
@@ -150,7 +179,28 @@ describe('PUT /api/logs', () => {
     const res = await request(app)
       .put('/api/logs')
       .send({ exerciseId: squatId, date: '2026-07-06', weight: null, note: null });
-    expect(res.body.log).toEqual({ completed: false, weight: null, note: null });
+    expect(res.body.log).toMatchObject({ completed: false, weight: null, note: null });
+  });
+
+  it('upserts and partially updates run metrics', async () => {
+    const runId = await insertRunExercise();
+    let res = await request(app)
+      .put('/api/logs')
+      .send({ exerciseId: runId, date: '2026-07-10', distance: 5.2, timeSeconds: 2670 });
+    expect(res.body.log).toMatchObject({
+      distance: 5.2,
+      timeSeconds: 2670,
+      elevationFt: null,
+    });
+    res = await request(app)
+      .put('/api/logs')
+      .send({ exerciseId: runId, date: '2026-07-10', elevationFt: 820, completed: true });
+    expect(res.body.log).toMatchObject({
+      completed: true,
+      distance: 5.2,
+      timeSeconds: 2670,
+      elevationFt: 820,
+    });
   });
 
   it('404s on unknown exercise', async () => {
@@ -243,6 +293,16 @@ describe('POST /api/exercises', () => {
     const day = await request(app).get('/api/day/2026-07-06');
     const names = day.body.sections[0].exercises.map((e: any) => e.name);
     expect(names).toContain('Barbell Row');
+  });
+
+  it('creates a run-type exercise', async () => {
+    const res = await request(app)
+      .post('/api/exercises')
+      .send({ name: 'Track Intervals', category: 'Running', isRun: true });
+    expect(res.status).toBe(201);
+    const day = await request(app).get('/api/day/2026-07-06');
+    const running = day.body.sections.find((s: any) => s.name === 'Running');
+    expect(running.exercises[0]).toMatchObject({ name: 'Track Intervals', isRun: true });
   });
 
   it('creates a new category at the end', async () => {
