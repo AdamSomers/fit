@@ -28,6 +28,26 @@ export interface DayPayload {
   sections: DaySection[];
 }
 
+export interface HistoryExercise {
+  id: number;
+  name: string;
+  isWeighted: boolean;
+  isRun: boolean;
+  active: boolean;
+  logs: Record<string, DayLog>;
+}
+
+export interface HistorySection {
+  id: number;
+  name: string;
+  exercises: HistoryExercise[];
+}
+
+export interface HistoryPayload {
+  days: string[];
+  sections: HistorySection[];
+}
+
 export interface LibraryExercise {
   id: number;
   name: string;

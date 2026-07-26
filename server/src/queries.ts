@@ -145,6 +145,88 @@ export async function upsertLog(
   };
 }
 
+export interface HistoryExercise {
+  id: number;
+  name: string;
+  isWeighted: boolean;
+  isRun: boolean;
+  active: boolean;
+  logs: Record<string, DayLog>;
+}
+
+export interface HistorySection {
+  id: number;
+  name: string;
+  exercises: HistoryExercise[];
+}
+
+export interface HistoryPayload {
+  days: string[]; // newest first, from `today` back to the earliest log
+  sections: HistorySection[];
+}
+
+export async function getHistory(today: string): Promise<HistoryPayload> {
+  const { rows } = await pool.query(
+    `SELECT c.id AS cat_id, c.name AS cat_name,
+            e.id, e.name, e.is_weighted, e.is_run, e.active,
+            l.performed_on, l.completed, l.weight, l.note,
+            l.distance, l.time_seconds, l.elevation_ft
+     FROM exercises e
+     JOIN categories c ON c.id = e.category_id
+     LEFT JOIN logs l ON l.exercise_id = e.id AND l.performed_on <= $1
+     WHERE e.active OR EXISTS (SELECT 1 FROM logs WHERE exercise_id = e.id)
+     ORDER BY c.position, e.position, e.name, l.performed_on`,
+    [today]
+  );
+
+  let earliest = today;
+  const sections: HistorySection[] = [];
+  for (const row of rows) {
+    let section = sections.find((s) => s.id === row.cat_id);
+    if (!section) {
+      section = { id: row.cat_id, name: row.cat_name, exercises: [] };
+      sections.push(section);
+    }
+    let exercise = section.exercises.find((e) => e.id === row.id);
+    if (!exercise) {
+      exercise = {
+        id: row.id,
+        name: row.name,
+        isWeighted: row.is_weighted,
+        isRun: row.is_run,
+        active: row.active,
+        logs: {},
+      };
+      section.exercises.push(exercise);
+    }
+    if (row.performed_on) {
+      exercise.logs[row.performed_on] = {
+        completed: row.completed,
+        weight: row.weight,
+        note: row.note,
+        distance: row.distance,
+        timeSeconds: row.time_seconds,
+        elevationFt: row.elevation_ft,
+      };
+      if (row.performed_on < earliest) earliest = row.performed_on;
+    }
+  }
+
+  // Continuous calendar, newest first. Dates are plain strings; walk with UTC
+  // arithmetic to avoid DST surprises (no timezone meaning attached).
+  const days: string[] = [];
+  const [y, m, d] = today.split('-').map(Number);
+  const cursor = new Date(Date.UTC(y, m - 1, d));
+  for (;;) {
+    const iso = cursor.toISOString().slice(0, 10);
+    days.push(iso);
+    if (iso <= earliest) break;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+
+  return { days, sections };
+}
+
 export interface LibraryExercise {
   id: number;
   name: string;

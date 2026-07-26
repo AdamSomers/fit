@@ -3,6 +3,7 @@ import {
   createExercise,
   deleteLog,
   getDay,
+  getHistory,
   listExercises,
   setExerciseActive,
   upsertLog,
@@ -13,10 +14,30 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export const app = express();
 app.use(express.json());
 
+// Log anything slow so latency regressions leave evidence in the server log.
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+  res.on('finish', () => {
+    const ms = Number(process.hrtime.bigint() - start) / 1e6;
+    if (ms > 500) {
+      console.error(
+        `[slow] ${new Date().toISOString()} ${req.method} ${req.originalUrl} ${ms.toFixed(0)}ms`
+      );
+    }
+  });
+  next();
+});
+
 app.get('/api/day/:date', async (req, res) => {
   const { date } = req.params;
   if (!DATE_RE.test(date)) return res.status(400).json({ error: 'bad date' });
   res.json(await getDay(date));
+});
+
+app.get('/api/history', async (req, res) => {
+  const today = String(req.query.today ?? '');
+  if (!DATE_RE.test(today)) return res.status(400).json({ error: 'bad today' });
+  res.json(await getHistory(today));
 });
 
 app.put('/api/logs', async (req, res) => {

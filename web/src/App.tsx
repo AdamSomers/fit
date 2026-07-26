@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { deleteLog, fetchDay, putLog, type LogPatch } from './api';
 import { AddExercise } from './components/AddExercise';
 import { DayNav } from './components/DayNav';
+import { HistoryPage } from './components/HistoryPage';
 import { Section } from './components/Section';
 import { SettingsPage } from './components/SettingsPage';
 import { todayStr } from './dates';
@@ -12,7 +13,7 @@ export default function App() {
   const [date, setDate] = useState(today);
   const [payload, setPayload] = useState<DayPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<'day' | 'settings'>('day');
+  const [view, setView] = useState<'day' | 'settings' | 'history'>('day');
 
   // If the app sits open past midnight, pick up the new day when it regains
   // focus or becomes visible again (phone browsers resurrect old tabs).
@@ -119,6 +120,10 @@ export default function App() {
     putLog(exerciseId, date, fields).catch(load);
   };
 
+  if (view === 'history') {
+    return <HistoryPage today={today} onBack={() => setView('day')} />;
+  }
+
   if (view === 'settings') {
     return (
       <SettingsPage
@@ -153,6 +158,9 @@ export default function App() {
             onAdded={load}
           />
           <footer className="page-footer">
+            <button className="footer-link" onClick={() => setView('history')}>
+              ▤ history
+            </button>
             <button className="footer-link" onClick={() => setView('settings')}>
               ⚙ settings
             </button>

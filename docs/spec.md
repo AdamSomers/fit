@@ -50,6 +50,8 @@ Running (run): Trail Run, Road Run, Workout Run.
 
 **Adding exercises.** A form at the bottom of the day page adds an exercise with a name, category (existing or new; a new category becomes a new section), and a weighted flag.
 
+**History.** A history page (day-page footer) shows the whole library as a side-scrolling table: exercise rows grouped by category, one column per day from today back to the earliest log, newest first. Cells show the day's weight, run distance, or a check; hover/long-press reveals full details. The exercise-name column and date header are sticky; the full library fits on one vertical page on a phone. Hidden exercises appear (dimmed) if they have history.
+
 **Hiding exercises.** A settings page (linked from the day page footer) lists the whole library with show/hide toggles. Hidden exercises (`exercises.active = false`) disappear from day pages going forward, but still appear on any day where they have a log entry, so history is preserved.
 
 ## API
@@ -59,6 +61,7 @@ Running (run): Trail Run, Road Run, Workout Run.
 - `DELETE /api/logs/:exerciseId/:date` — deselect.
 - `POST /api/exercises` — add `{name, category, isWeighted}`; creates the category if new.
 - `GET /api/exercises` — full library with `active` flags (settings page).
+- `GET /api/history?today=YYYY-MM-DD` — day columns + per-exercise log maps (history page).
 - `PATCH /api/exercises/:id` — `{active}` to show/hide.
 
 ## Stack & Environment

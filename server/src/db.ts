@@ -7,4 +7,8 @@ pg.types.setTypeParser(1700, (v) => parseFloat(v));
 
 export const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL ?? 'postgres://adam@localhost/fit',
+  // Survive laptop sleep/wake: probe sockets so dead connections are culled,
+  // and fail a checkout fast instead of hanging a request on a stale socket.
+  keepAlive: true,
+  connectionTimeoutMillis: 3000,
 });

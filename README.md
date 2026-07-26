@@ -6,13 +6,30 @@ Spec: `docs/spec.md`. Build plan: `docs/superpowers/plans/2026-07-06-fit-app.md`
 
 ## Running
 
+**Production (how it normally runs):** a launchd service (`com.adam.fit`, plist in
+`~/Library/LaunchAgents/`) runs `server/src/index.ts` at login and restarts it on
+crash. That one process serves the API on 8003 and the built web app on 5177.
+Logs: `~/Library/Logs/fit.log`. After changing web code, rebuild and restart:
+
+```bash
+npm run build -w web
+launchctl kickstart -k gui/501/com.adam.fit
+```
+
+**Development:**
+
 ```bash
 npm install
 npm run migrate     # applies schema + seed to the fit database
-npm run dev         # api on 0.0.0.0:8003, web on 0.0.0.0:5177
+npm run dev         # vite on 5177 (takes the port over), tsx watch api on 8003
 ```
 
 Open http://localhost:5177 (or http://botbox.local:5177 from the LAN).
+
+Do not run the daily-use app from a watch-mode dev server left in a terminal or
+Claude session: that setup degraded over two weeks of laptop sleep cycles and
+died when the owning session closed (July 2026). The launchd service exists
+because of that. Requests slower than 500ms are logged to fit.log with timings.
 
 ## Stack
 

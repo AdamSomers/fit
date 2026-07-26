@@ -1,4 +1,4 @@
-import type { DayLog, DayPayload, LibraryExercise } from './types';
+import type { DayLog, DayPayload, HistoryPayload, LibraryExercise } from './types';
 
 async function check<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
@@ -33,6 +33,10 @@ export function putLog(
 export async function deleteLog(exerciseId: number, date: string): Promise<void> {
   const res = await fetch(`/api/logs/${exerciseId}/${date}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`${res.status}`);
+}
+
+export function fetchHistory(today: string): Promise<HistoryPayload> {
+  return fetch(`/api/history?today=${today}`).then((r) => check<HistoryPayload>(r));
 }
 
 export function fetchExercises(): Promise<{ exercises: LibraryExercise[] }> {

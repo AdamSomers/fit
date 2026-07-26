@@ -284,6 +284,38 @@ describe('day page visibility of inactive exercises', () => {
   });
 });
 
+describe('GET /api/history', () => {
+  it('returns days newest-first from earliest log to today, with cells', async () => {
+    await insertLog(squatId, '2026-07-16', { completed: true, weight: 185 });
+    await insertLog(plankId, '2026-07-17', { completed: true });
+    const res = await request(app).get('/api/history?today=2026-07-19');
+    expect(res.status).toBe(200);
+    expect(res.body.days).toEqual(['2026-07-19', '2026-07-18', '2026-07-17', '2026-07-16']);
+    const main = res.body.sections.find((s: any) => s.name === 'Main Lifts');
+    const squat = main.exercises.find((e: any) => e.name === 'Barbell Squat');
+    expect(squat.logs['2026-07-16']).toMatchObject({ completed: true, weight: 185 });
+    expect(squat.logs['2026-07-17']).toBeUndefined();
+  });
+
+  it('uses just today when there are no logs', async () => {
+    const res = await request(app).get('/api/history?today=2026-07-19');
+    expect(res.body.days).toEqual(['2026-07-19']);
+  });
+
+  it('includes inactive exercises only if they have logs', async () => {
+    await insertLog(plankId, '2026-07-15', { completed: true });
+    await pool.query('UPDATE exercises SET active = false'); // hide everything
+    const res = await request(app).get('/api/history?today=2026-07-19');
+    const all = res.body.sections.flatMap((s: any) => s.exercises.map((e: any) => e.name));
+    expect(all).toEqual(['Plank']);
+  });
+
+  it('rejects a malformed today', async () => {
+    const res = await request(app).get('/api/history?today=nope');
+    expect(res.status).toBe(400);
+  });
+});
+
 describe('POST /api/exercises', () => {
   it('adds to an existing category', async () => {
     const res = await request(app)
