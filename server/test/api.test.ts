@@ -208,6 +208,65 @@ describe('PUT /api/logs', () => {
     expect(res.status).toBe(404);
   });
 
+  describe('weight carry-forward on create', () => {
+    it('stores the last known weight when a weighted log is created without one', async () => {
+      await insertLog(squatId, '2026-07-01', { completed: true, weight: 185 });
+      const res = await request(app)
+        .put('/api/logs')
+        .send({ exerciseId: squatId, date: '2026-07-06' });
+      expect(res.body.log).toMatchObject({ completed: false, weight: 185 });
+      const day = await request(app).get('/api/day/2026-07-06');
+      const squat = day.body.sections[0].exercises.find((e: any) => e.name === 'Barbell Squat');
+      expect(squat.log.weight).toBe(185);
+    });
+
+    it('carries the most recent prior weight, ignoring later days', async () => {
+      await insertLog(squatId, '2026-07-01', { weight: 175 });
+      await insertLog(squatId, '2026-07-04', { weight: 185 });
+      await insertLog(squatId, '2026-07-08', { weight: 200 }); // after: excluded
+      const res = await request(app)
+        .put('/api/logs')
+        .send({ exerciseId: squatId, date: '2026-07-06' });
+      expect(res.body.log.weight).toBe(185);
+    });
+
+    it('an explicit weight beats the carried weight', async () => {
+      await insertLog(squatId, '2026-07-01', { weight: 185 });
+      const res = await request(app)
+        .put('/api/logs')
+        .send({ exerciseId: squatId, date: '2026-07-06', weight: 190 });
+      expect(res.body.log.weight).toBe(190);
+    });
+
+    it('an explicit null weight on create stays null', async () => {
+      await insertLog(squatId, '2026-07-01', { weight: 185 });
+      const res = await request(app)
+        .put('/api/logs')
+        .send({ exerciseId: squatId, date: '2026-07-06', weight: null });
+      expect(res.body.log.weight).toBeNull();
+    });
+
+    it('does not refill weight when updating an existing log', async () => {
+      await insertLog(squatId, '2026-07-01', { weight: 185 });
+      await request(app).put('/api/logs').send({ exerciseId: squatId, date: '2026-07-06' });
+      await request(app)
+        .put('/api/logs')
+        .send({ exerciseId: squatId, date: '2026-07-06', weight: null }); // user clears it
+      const res = await request(app)
+        .put('/api/logs')
+        .send({ exerciseId: squatId, date: '2026-07-06', completed: true });
+      expect(res.body.log).toMatchObject({ completed: true, weight: null });
+    });
+
+    it('never carries weight onto non-weighted exercises', async () => {
+      await insertLog(plankId, '2026-07-01', { weight: 50 }); // stray data
+      const res = await request(app)
+        .put('/api/logs')
+        .send({ exerciseId: plankId, date: '2026-07-06' });
+      expect(res.body.log.weight).toBeNull();
+    });
+  });
+
   it('400s on bad date', async () => {
     const res = await request(app).put('/api/logs').send({ exerciseId: squatId, date: 'nope' });
     expect(res.status).toBe(400);

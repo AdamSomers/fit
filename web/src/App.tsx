@@ -86,10 +86,11 @@ export default function App() {
       patchExercise(exerciseId, { log: null });
       deleteLog(exerciseId, date).catch(load);
     } else {
+      // The server stores the carried-forward weight on new weighted logs.
       patchExercise(exerciseId, {
         log: {
           completed: false,
-          weight: null,
+          weight: ex.isWeighted ? ex.lastWeight : null,
           note: null,
           distance: null,
           timeSeconds: null,

@@ -109,6 +109,25 @@ export async function upsertLog(
   date: string,
   fields: LogFields
 ): Promise<DayLog> {
+  // A weighted exercise done without touching the weight was done at the weight
+  // shown on its card (the last recorded one) — store that on newly created
+  // rows. Existing rows keep whatever weight they have (including cleared).
+  let insertWeight = fields.weight ?? null;
+  if (!('weight' in fields)) {
+    const carried = await pool.query(
+      `SELECT w.weight
+       FROM exercises e
+       JOIN LATERAL (
+         SELECT weight FROM logs
+         WHERE exercise_id = e.id AND weight IS NOT NULL AND performed_on < $2
+         ORDER BY performed_on DESC LIMIT 1
+       ) w ON true
+       WHERE e.id = $1 AND e.is_weighted`,
+      [exerciseId, date]
+    );
+    if (carried.rows[0]) insertWeight = carried.rows[0].weight;
+  }
+
   // Only fields present in the request overwrite existing values.
   const sets = (Object.keys(LOG_COLUMNS) as (keyof LogFields)[])
     .filter((k) => k in fields)
@@ -127,7 +146,7 @@ export async function upsertLog(
       exerciseId,
       date,
       fields.completed ?? false,
-      fields.weight ?? null,
+      insertWeight,
       fields.note ?? null,
       fields.distance ?? null,
       fields.timeSeconds ?? null,
