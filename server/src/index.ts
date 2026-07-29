@@ -19,6 +19,20 @@ if (serveWeb) {
 const API_PORT = 8003;
 const WEB_PORT = 5177;
 
+// Under system memory pressure macOS swaps the idle server (and Postgres) out;
+// the first request then pays a 10-70s page-in penalty (seen 2026-07-28).
+// Touching the real request path every few minutes keeps the working set warm.
+const KEEP_WARM_MS = 5 * 60 * 1000;
+setInterval(() => {
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate()
+  ).padStart(2, '0')}`;
+  http
+    .get(`http://127.0.0.1:${API_PORT}/api/day/${today}`, (res) => res.resume())
+    .on('error', () => {});
+}, KEEP_WARM_MS).unref();
+
 http.createServer(app).listen(API_PORT, '0.0.0.0', () => {
   console.log(`fit api listening on 0.0.0.0:${API_PORT}`);
 });

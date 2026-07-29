@@ -10,5 +10,7 @@ export const pool = new pg.Pool({
   // Survive laptop sleep/wake: probe sockets so dead connections are culled,
   // and fail a checkout fast instead of hanging a request on a stale socket.
   keepAlive: true,
-  connectionTimeoutMillis: 3000,
+  // Generous: during a memory-pressure page-in storm, 3s produced spurious
+  // "Connection terminated due to connection timeout" 500s (2026-07-28).
+  connectionTimeoutMillis: 15000,
 });
