@@ -6,7 +6,9 @@ pg.types.setTypeParser(1082, (v) => v);
 pg.types.setTypeParser(1700, (v) => parseFloat(v));
 
 export const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL ?? 'postgres://adam@localhost/fit',
+  // No username in the default: pg falls back to the OS user, so a fresh
+  // clone works on any machine whose Postgres trusts local connections.
+  connectionString: process.env.DATABASE_URL ?? 'postgres://localhost/fit',
   // Survive laptop sleep/wake: probe sockets so dead connections are culled,
   // and fail a checkout fast instead of hanging a request on a stale socket.
   keepAlive: true,
