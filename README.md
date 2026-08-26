@@ -4,6 +4,14 @@ A local web app for tracking my exercise library, organized by day. The library 
 
 Spec: `docs/spec.md`. Build plan: `docs/superpowers/plans/2026-07-06-fit-app.md`.
 
+The day page. Cards are ordered by least recently performed, so the top of each section is what's most overdue. Tap a card to select it, check it off when done:
+
+![Day page](docs/screenshots/day.png)
+
+The history page. One column per day, newest first. Cells show the weight for lifts, distance for runs, a check for everything else:
+
+![History page](docs/screenshots/history.png)
+
 ## Running it locally
 
 Requirements: Node 22+ and PostgreSQL 16 (any install works; on macOS, `brew install postgresql@16`). Postgres must accept local connections from your OS user, which is the Homebrew default.
